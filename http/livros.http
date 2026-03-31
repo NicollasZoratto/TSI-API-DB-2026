@@ -1,0 +1,22 @@
+@url = http://localhost:3000/livros
+
+GET {{url}}
+
+### 
+
+POST {{url}}
+Content-Type: application/json
+
+{
+    "titulo": "O Hobbit",
+    "autores": "J.R.R TOLKIEN"
+}
+
+### 
+PUT {{url}}/1
+Content-Type: application/json
+
+{
+    "titulo": "O Hobbit (alterado)",
+    "autores": "J.R.R TOLKIEN (alterado)"
+}
