@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
-import { db } from "../db";
+// import { db } from "../db";
 import { Genero } from "../model/Genero";
+import { prisma } from "../prisma";
 
 const router = Router();
 
