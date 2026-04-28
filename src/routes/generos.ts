@@ -1,46 +1,83 @@
+
+import { db } from "../db";
 import { Router, Request, Response } from "express";
-// import { db } from "../db";
-import { Genero } from "../model/Genero";
 import { prisma } from "../prisma";
 
 const router = Router();
 
-router.get("/", (req: Request, res: Response) => {
-    db.all("SELECT * FROM generos", (erro, linhas) => {
-        if(erro) {
-            return res.status(500).json(
-                {erro: "ERRO ao buscar gêneros"}
-            );
-        }
-        res.json(linhas);
-    });
+// router.get("/", (req: Request, res: Response) => {
+//     db.all("SELECT * FROM generos", (erro, linhas) => {
+//         if(erro) {
+//             return res.status(500).json(
+//                 {erro: "ERRO ao buscar gêneros"}
+//             );
+//         }
+//         res.json(linhas);
+//     });
+// });
+
+router.get("/", async (req: Request, res: Response) => {
+    try {
+        const generos = await prisma.genero.findMany();
+        
+        res.json(generos);
+    }   catch (error) {
+        res.status(500).json({
+            erro: "Erro ao buscar gêneros"
+        });
+    }
 });
 
-router.post("/", (req: Request, res: Response) => {
-    const {nome} = req.body
+// router.post("/", (req: Request, res: Response) => {
+//     const {nome} = req.body
 
-    if(!nome || nome.trim() === "") {
-        return res.status(400).json({ erro : "O campo nome do gênero é obrigatório"}
+//     if(!nome || nome.trim() === "") {
+//         return res.status(400).json({ erro : "O campo nome do gênero é obrigatório"}
 
-        );
-    }
+//         );
+//     }
     
-    db.run(
-        "INSERT INTO generos (nome) VALUES (?)",
-        [nome],
-        function (erro) {
-            if(erro) {
-                return res.status(500).json(
-                    { erro: "Erro ao cadastrar gênero." }
-                );
+//     db.run(
+//         "INSERT INTO generos (nome) VALUES (?)",
+//         [nome],
+//         function (erro) {
+//             if(erro) {
+//                 return res.status(500).json(
+//                     { erro: "Erro ao cadastrar gênero." }
+//                 );
+//             }
+
+//             res.status(201).json({
+//                 id: this.lastID,
+//                 nome,
+//             })
+//         }
+//     );
+// });
+
+router.post("/", async (req: Request, res: Response) => {
+    try {
+        const { nome } = req.body;
+
+        if(!nome || nome.trim() === "") {
+        return res.status(400).json({
+             erro : "O campo nome do gênero é obrigatório."
+        });
             }
 
-            res.status(201).json({
-                id: this.lastID,
-                nome,
-            })
-        }
-    );
+            const novoGenero = await prisma.genero.create({
+                data: {
+                    nome : nome.trim()
+                }
+            });
+
+            res.status(201).json(novoGenero);
+
+    } catch (ex) {
+        res.status(500).json({
+            erro: "Erro ao cadastrar gênero"
+        });
+    }
 });
 
 router.put("/:id", (req : Request, res: Response) => {
