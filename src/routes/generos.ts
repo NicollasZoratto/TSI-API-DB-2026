@@ -1,160 +1,139 @@
-
-import { db } from "../db";
 import { Router, Request, Response } from "express";
 import { prisma } from "../prisma";
 
 const router = Router();
 
-// router.get("/", (req: Request, res: Response) => {
-//     db.all("SELECT * FROM generos", (erro, linhas) => {
-//         if(erro) {
-//             return res.status(500).json(
-//                 {erro: "ERRO ao buscar gêneros"}
-//             );
-//         }
-//         res.json(linhas);
-//     });
-// });
-
+// Listar todos os gêneros
 router.get("/", async (req: Request, res: Response) => {
     try {
-        const generos = await prisma.genero.findMany();
+        const generos = await prisma.genero.findMany({
+            include: {
+            livros: true
+            }
+        });
         
         res.json(generos);
-    }   catch (error) {
+    } catch (ex) {
         res.status(500).json({
             erro: "Erro ao buscar gêneros"
         });
     }
 });
 
-// router.post("/", (req: Request, res: Response) => {
-//     const {nome} = req.body
+// Buscar um gênero por ID
+router.get("/:id", async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
 
-//     if(!nome || nome.trim() === "") {
-//         return res.status(400).json({ erro : "O campo nome do gênero é obrigatório"}
-
-//         );
-//     }
-    
-//     db.run(
-//         "INSERT INTO generos (nome) VALUES (?)",
-//         [nome],
-//         function (erro) {
-//             if(erro) {
-//                 return res.status(500).json(
-//                     { erro: "Erro ao cadastrar gênero." }
-//                 );
-//             }
-
-//             res.status(201).json({
-//                 id: this.lastID,
-//                 nome,
-//             })
-//         }
-//     );
-// });
-
-router.post("/", async (req: Request, res: Response) => {
     try {
-        const { nome } = req.body;
-
-        if(!nome || nome.trim() === "") {
-        return res.status(400).json({
-             erro : "O campo nome do gênero é obrigatório."
+        const generoExistente = await prisma.genero.findUnique({
+            where: { id }
         });
-            }
 
-            const novoGenero = await prisma.genero.create({
-                data: {
-                    nome : nome.trim()
-                }
+        if (!generoExistente) {
+            return res.status(404).json({
+                erro: "Gênero não encontrado"
             });
+        }
 
-            res.status(201).json(novoGenero);
+        const { nome } = generoExistente;
+        const genero = await prisma.genero.findUnique({
+            where: { id }
+        });
 
+        const generoAtualizado = await prisma.genero.update({
+            where: { id },
+            data: {
+                nome: nome.trim()
+            }
+        });
+
+        res.json(generoAtualizado);
     } catch (ex) {
         res.status(500).json({
-            erro: "Erro ao cadastrar gênero"
+            erro: "Erro ao buscar gênero"
         });
     }
 });
 
-router.put("/:id", (req : Request, res: Response) => {
-    const id = Number(req.params.id);
-    const {nome} = req.body;
+// Cadastrar um novo gênero
+router.post("/", async (req: Request, res: Response) => {
+    const { nome } = req.body;
 
-    db.run(
-        "UPDATE generos SET nome = ? WHERE id = ?",
-        [nome, id],
-        function(erro) {
-            if(erro) {
-                return res.status(500).json(
-                    { erro: "Erro ao atualizar gênero." }
-                );
-            }
-
-            if(this.changes === 0) {
-                return res.status(404).json(
-                    { erro: "Gênero não encontrado"}
-                );
-            }
-
-            res.json({
-                id,
-                nome
-            })
+    if (!nome || typeof nome !== "string" || nome.trim() === "") {
+        return res.status(400).json({
+            erro: "O campo nome do gênero é obrigatório."
         });
+    }
+
+    try {
+        const genero = await prisma.genero.create({
+            data: {
+                nome: nome.trim()
+            }
+        });
+
+        res.status(201).json(genero);
+    } catch (ex) {
+        res.status(500).json({
+            erro: "Erro ao cadastrar gênero."
+        });
+    }
 });
 
-router.delete("/:id", (req: Request, res: Response) => {
+// Atualizar um gênero
+router.put("/:id", async (req: Request, res: Response) => {
     const id = Number(req.params.id);
+    const { nome } = req.body;
 
-    db.run(
-        "DELETE FROM generos WEHRE id = ?", 
-        [id], 
-        function(erro) {
-            if(erro) {
-                return res.status(500).json(
-                    { erro: "Erro ao deletar gênero." }
-                );
+    if (!nome || typeof nome !== "string" || nome.trim() === "") {
+        return res.status(400).json({
+            erro: "O campo nome do gênero é obrigatório."
+        });
+    }
+
+    try {
+        const genero = await prisma.genero.update({
+            where: { id },
+            data: {
+                nome: nome.trim()
             }
+        });
 
-            if(this.changes === 0) {
-                return res.status(404).json(
-                    { erro: "Gênero não encontrado"}
-                );
-            }
-
-            res.status(204).send();
+        res.json(genero);
+    } catch (ex) {
+        // P2025 é o código do Prisma para "Record to update not found"
+        if ((ex as any).code === 'P2025') {
+            return res.status(404).json({
+                erro: "Gênero não encontrado"
+            });
         }
-
-    );
+        res.status(500).json({
+            erro: "Erro ao atualizar gênero."
+        });
+    }
 });
 
-router.get("/:id", (req: Request, res: Response) => {
+// Remover um gênero
+router.delete("/:id", async (req: Request, res: Response) => {
     const id = Number(req.params.id);
 
-    db.get(
-        "SELECT * FROM generos WHERE id = ?",
-        [id],
-        (erro, linha) => {
-            if(erro) {
-                return res.status(500).json(
-                    {erro : "Erro ao buscar gênero"}
-                );
-            }
+    try {
+        await prisma.genero.delete({
+            where: { id }
+        });
 
-            if(linha) {
-                return res.status(404).json(
-                    {erro : "Gênero não encontrado"}
-                );
-            }
-
-            res.json(linha)
-        } 
-    );
+        res.status(204).send();
+    } catch (ex) {
+        // P2025 é o código do Prisma para "Record to delete not found"
+        if ((ex as any).code === 'P2025') {
+            return res.status(404).json({
+                erro: "Gênero não encontrado"
+            });
+        }
+        res.status(500).json({
+            erro: "Erro ao remover gênero."
+        });
+    }
 });
 
 export default router;
-

@@ -1,60 +1,86 @@
 import { Router, Request, Response } from "express";
-import {db} from "../db"
+import { prisma } from "../prisma"
+import { json } from "node:stream/consumers";
 
 const router = Router();
 
-router.get("/", (req: Request, res: Response) => {
-    db.all("SELECT * FROM livros", (erro, linhas) => {
-        if(erro) {
-            return res.status(500).json (
-                {erro: "Erro ao buscar livro"}
-            );
+router.get("/", async (req: Request, res: Response) => {
+    const livros = await prisma.livro.findMany({
+        include: {
+            genero: true
         }
-        res.json(linhas);
     });
-}); 
 
-router.post("/", (req: Request, res: Response) => {
-    const {titulo, autores} = req.body;
-
-    db.run(
-        "INSERT INTO livros (titulo, autores) VALUES (?, ?)",
-        [titulo, autores],
-        function (erro) {
-            if(erro) {
-                return res.status(500).json(
-                    {erro: "Erro ao cadastrar livro"}
-                );
-            }
-            res.status(201).json({
-                id: this.lastID,
-                titulo, 
-                autores
-            });
-        }
-    );
+    res.json(livros);
 });
 
-router.put("/:id", (req: Request, res: Response) => {
+router.post("/", async (req: Request, res: Response) => {
+    const { titulo, generoId } = req.body;
+
+    if(!titulo || !generoId) {
+        return res.status(400).json({
+            erro: "Titulo e generoId são obrigatórios."
+        });
+    }
+
+    const genero = await prisma.genero.findUnique({
+        where: {id: Number(generoId)}
+    });
+
+    if(!genero) {
+        return res.status(404).json({
+            erro: "Genero não encontrado."
+        })
+    }
+
+    if (!titulo || typeof titulo !== "string" || titulo.trim() === "") {
+        return res.status(400).json({
+            erro: "O campo título é obrigatório."
+        });
+    }
+
+    if (!generoId || typeof generoId !== "number") {
+        return res.status(400).json({
+            erro: "O campo generoId é obrigatório e deve ser um número."
+        });
+    }
+
+    try {
+        const livro = await prisma.livro.create({
+            data: {
+                titulo: titulo.trim(),
+                generoId: generoId
+            },
+            include: {
+                genero: true
+            }
+        });
+
+        res.status(201).json(livro);
+    } catch (ex) {
+        console.error(ex);
+        res.status(500).json({
+            erro: "Erro ao cadastrar livro."
+        });
+    }
+});
+
+router.put("/:id", async (req: Request, res: Response) => {
     const id = Number(req.params.id);
-    const {titulo, autores} = req.body;
+    const { titulo, generoId } = req.body;
 
-    db.run(
-        "UPDATE livros SET titulo = ?, autores = ? WHERE id = ?",
-    [titulo, autores, id],
-    function (erro) {
-            if(this.changes === 0) {
-                return res.status(404).json(
-                    {erro: "Livro não encontrado"}
-                );
-            }
-            res.json({
-                id, 
-                titulo, 
-                autores
-            });
+    const livroAtualizado = await prisma.livro.update({
+        where: {id},
+        data: {
+            titulo: titulo,
+            generoId: Number(generoId)
+        },
+        include: {
+            genero: true
         }
-    );
-});
+    });
+
+    res.json(livroAtualizado);
+} );
 
 export default router;
