@@ -1,13 +1,30 @@
-@url = http://localhost:3003/livros
+@url = http://localhost:3000/livros
 
 GET {{url}}
 
 ###
-
 POST {{url}}
 Content-Type: application/json
 
 {
-    "titulo": "O Hobbit",
-    "generoId": 1
+    "titulo": "E não sobrou nenhum",
+    "generoId": 2
+    "titulo": "Fundamentos da Arquitetura de Software",
+    "generoId": 3,
+    "autoresIds": [2,3]
+}
+
+###
+@@ -32,4 +33,12 @@
+
+{
+    "generoId": "E não sobrou nenhum."
+}
+
+###
+POST {{url}}/1/autores
+Content-Type: application/json
+
+{
+    "autoresIds": [4]
 }

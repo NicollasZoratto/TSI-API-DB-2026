@@ -1,23 +1,21 @@
-@url = http://localhost:3003/generos
+@url = http://localhost:3000/generos
 
 GET {{url}}
 
 ###
-
-
 GET {{url}}/1
 
-###   
-
+###
 POST {{url}}
 Content-Type: application/json
 
 {
-    "nome": "Aventura"
+    "nome": "Policial"
+    //"nome": "Policial"
+    "nome": "Computação"
 }
 
 ###
-
 PUT {{url}}/1
 Content-Type: application/json
 
@@ -25,6 +23,5 @@ Content-Type: application/json
     "nome" : "Fantasia Medieval"
 }
 
-###   
-
+###
 DELETE {{url}}/1

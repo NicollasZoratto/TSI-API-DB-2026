@@ -26,4 +26,12 @@ model Livro {
 
   generoId Int 
   genero Genero @relation(fields: [generoId], references: [id])
+  autores Autor[]
+}
+
+model Autor {
+  id Int @id @default(autoincrement())
+  nome String
+
+  livros Livro[]
 }
